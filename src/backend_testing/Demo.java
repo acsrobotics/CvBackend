@@ -81,9 +81,6 @@ public class Demo {
 						.invert()
 						.writeToFileWithName("Stage_X")
 						.getImage();
-//						.momentTrack(imgInput, processor.getImage())
-//						.writeToFileWithName("Stage_Final")
-//						.getImage();
 		
 		processor
 			.setImage(imgCombined)

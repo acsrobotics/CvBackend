@@ -1,4 +1,4 @@
-package backend_testing;
+package lib;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -17,6 +17,17 @@ import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 
+/**
+ * For specific use of this library, please refer to this repository
+ * https://github.com/GoldenTeeth/azgt_wheels/tree/master/vision/CvBackend
+ * CvPipline is essentially an OpenCV wrapper library design to provide 
+ * LINQ-like API to complete simple image processing task
+ * Please make sure OpenCV_2.4.11 is properly installed on your computer
+ * and it is added to the Build Path of this project
+ * 
+ * @author Zhang
+ *
+ */
 public class CvPipeline {
 	
 	static {
@@ -152,6 +163,13 @@ public class CvPipeline {
 		return this;
 	}
 	
+	public CvPipeline resizeTo(int width, int height){
+		Mat out = new Mat();
+		Imgproc.resize(this.Image, out, new Size(width, height));
+		this.Image = out;
+		return this;
+	}
+	
 	public CvPipeline momentTrack(final Mat imgOriginal, final Mat imgThresholded){
 		Mat imgProcessed = imgOriginal.clone();
 		Size size = new Size(imgOriginal.width(), imgOriginal.height());
@@ -178,6 +196,17 @@ public class CvPipeline {
 		}
 		this.Image = imgProcessed;
 		return this;
+	}
+	
+	public int[] computeRectRelativeDifference(){
+		if(this.rects.size() != 1){
+			int[] ret = {-1,-1};
+			return ret;
+		}
+		int[] center = {(int) (this.Image.size().width / 2), (int) (this.Image.size().height / 2)};
+		int[] rect = {this.rects.getFirst().x, this.rects.getFirst().y};
+		int[] difference = {rect[0] - center[0], center[1] - rect[1]};
+		return difference;
 	}
 	
 	private double widthHeightRatio(Rect rect){
