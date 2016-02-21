@@ -11,7 +11,7 @@ public class Demo {
 		CvPipeline processor = new CvPipeline();
 		Mat imgInput = new Mat();
 		
-		imgInput = Highgui.imread("E.png", Highgui.CV_LOAD_IMAGE_COLOR);
+		imgInput = Highgui.imread("C.png", Highgui.CV_LOAD_IMAGE_COLOR);
 		// thresh red
 		
 		Mat imgThRed = processor
@@ -89,7 +89,9 @@ public class Demo {
 			.toGray()
 			.findContours()
 			.computeRectsFromContours()
+			.reduceRectsToOne()
 			.drawRects(imgInput)
+			.drawCircleOnCenter()
 			.writeToFileWithName("Stage_Combined_Contours");
 		
 	}
