@@ -124,7 +124,7 @@ public class CvPipeline {
 	}
 	
 	public CvPipeline drawCircleOnCenter(){
-		if(this.rects != null){
+		if(this.rects.size() != 0){
 			double x_center = this.Image.size().width / 2;
 			double y_center = this.Image.size().height / 2;
 			
