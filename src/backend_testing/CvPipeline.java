@@ -17,6 +17,8 @@ import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 
+import backend_testing.FilterPipeline.Filter;
+
 /**
  * For specific use of this library, please refer to this repository
  * https://github.com/GoldenTeeth/azgt_wheels/tree/master/vision/CvBackend
@@ -47,9 +49,13 @@ public class CvPipeline {
 	int iHighS;
 	int iHighV;
 	
+	FilterPipeline filters;
+	
 	public CvPipeline(){
 		this.contours = new LinkedList<>();
 		this.rects    = new LinkedList<>();
+		this.filters  = new FilterPipeline();
+		this.filters.injectPipeDependency(this);
 	}
 	
 	public CvPipeline setLowHSV(int H, int S, int V){
@@ -113,10 +119,18 @@ public class CvPipeline {
 			// convert back to MatOfPoints
 			MatOfPoint points = new MatOfPoint(approxCurve.toArray());
 			Rect rect = Imgproc.boundingRect(points);
-			if(widthHeightRatio(rect) <= 0.69){
+			
+//			if(filters.eval(rect)){
+//				this.rects.add(rect);
+//			}
+			
+			double ratio = widthHeightRatio(rect);
+			if( ratio <= 0.70 && ratio >= 0.45 ){
 				// filtering rectangles 
-				if(rect.width > 15 && rect.height > 30){
-					this.rects.add(rect);
+				if(rect.width > 20 && rect.height > 30){
+					//if(isAtTheRim(rect, 100)){
+						this.rects.add(rect);
+					//}
 				}
 			}
 		}
@@ -129,7 +143,7 @@ public class CvPipeline {
 			double y_center = this.Image.size().height / 2;
 			
 			// set the radius of the circle to 70% of the rectangle's width 
-			double radius = this.rects.getFirst().width / 2 * 0.70;
+			double radius = this.rects.getFirst().width / 2 * 0.75;
 			
 			Scalar color = onTarget(x_center, y_center, radius) ? 
 							new Scalar(0, 255, 0) : new Scalar(0, 0, 255);
@@ -215,6 +229,11 @@ public class CvPipeline {
 		return this;
 	}
 	
+	public CvPipeline addFilter(Filter filter){
+		this.filters.addFilter(filter);
+		return this;
+	}
+	
 	public int[] computeRectRelativeDifference(){
 		if(this.rects.size() != 1){
 			int[] ret = {-1,-1};
@@ -226,9 +245,6 @@ public class CvPipeline {
 		return difference;
 	}
 	
-	private double widthHeightRatio(Rect rect){
-		return (double)rect.width / (double)rect.height;
-	}
 	
 	/**
 	 * calculate whether the circle is on target(rectangle) or not
@@ -241,10 +257,10 @@ public class CvPipeline {
 		// calculate the order in x_left, x_right, y_top, y_bottom
 		Rect rect = this.rects.getFirst();
 		double[] rectangle = {
-				x_center - (rect.width / 2),
-				x_center + (rect.width / 2),
-				y_center - (rect.height / 2),
-				y_center + (rect.height / 2)
+				rect.x,
+				rect.x + (rect.width),
+				rect.y,
+				rect.y + (rect.height )
 		};
 		
 		double[] circle = {
@@ -255,6 +271,7 @@ public class CvPipeline {
 		};
 		
 		boolean status;
+		
 		
 		// if circle is within the rectangle 
 		if(rectangle[0] < circle[0] &&
@@ -327,6 +344,27 @@ public class CvPipeline {
 			return false;
 		}
 	}
+	
+	private final static double widthHeightRatio(Rect rect){
+		return (double)rect.width / (double)rect.height;
+	}
+
+	private boolean isAtTheRim(Rect rect, int width){
+	Size size = this.Image.size();
+	// order: x-left, x-right, y-top, y-bottom
+	int[] rim = {
+		width,
+		(int) (size.width - width),
+		width,
+		(int) (size.height - width)
+	};
+	if(rect.x > rim[0] && rect.x < rim[1] 
+		&& rect.y > rim[2] && rect.y < rim[3]){
+		return true;
+	}else{
+		return false;
+	}
+}
 	
 	private void preProcess(Mat img){
 		Imgproc.erode(img, img, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5,5)));

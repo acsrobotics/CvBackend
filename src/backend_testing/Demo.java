@@ -2,6 +2,8 @@ package backend_testing;
 
 
 import org.opencv.core.Mat;
+import org.opencv.core.Rect;
+import org.opencv.core.Size;
 import org.opencv.highgui.Highgui;
 
 public class Demo {
@@ -11,7 +13,7 @@ public class Demo {
 		CvPipeline processor = new CvPipeline();
 		Mat imgInput = new Mat();
 		
-		imgInput = Highgui.imread("G.png", Highgui.CV_LOAD_IMAGE_COLOR);
+		imgInput = Highgui.imread("C.png", Highgui.CV_LOAD_IMAGE_COLOR);
 		// thresh red
 		
 		Mat imgThRed = processor
@@ -88,11 +90,42 @@ public class Demo {
 			.toBGR()
 			.toGray()
 			.findContours()
+			.addFilter((p, r) -> {
+				double radio = (double) r.width / (double)r.height;
+				return radio <= 0.70 && radio >= 0.45 ? true : false;
+			})
+			.addFilter((p, r) -> r.width > 20 && r.height > 30 ? true : false)
+			.addFilter((p, r) -> {
+				Mat img = p.getImage();
+				return isAtTheRim(img, r, 50);
+			})
 			.computeRectsFromContours()
 			.reduceRectsToOne()
 			.drawRects(imgInput)
 			.drawCircleOnCenter()
 			.writeToFileWithName("Stage_Combined_Contours");
 		
+	}
+	
+	
+	private static boolean isAtTheRim(Mat img, Rect rect, int width){
+		Size size = img.size();
+		// order: x-left, x-right, y-top, y-bottom
+		int[] rim = {
+			width,
+			(int) (size.width - width),
+			width,
+			(int) (size.height - width)
+		};
+		if(rect.x > rim[0] && rect.x < rim[1] 
+			&& rect.y > rim[2] && rect.y < rim[3]){
+			return true;
+		}else{
+			return false;
+		}
+	}
+
+	private final static double widthHeightRatio(Rect rect){
+		return (double)rect.width / (double)rect.height;
 	}
 }
