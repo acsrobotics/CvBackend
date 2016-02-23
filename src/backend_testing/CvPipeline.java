@@ -120,19 +120,19 @@ public class CvPipeline {
 			MatOfPoint points = new MatOfPoint(approxCurve.toArray());
 			Rect rect = Imgproc.boundingRect(points);
 			
-//			if(filters.eval(rect)){
-//				this.rects.add(rect);
-//			}
-			
-			double ratio = widthHeightRatio(rect);
-			if( ratio <= 0.70 && ratio >= 0.45 ){
-				// filtering rectangles 
-				if(rect.width > 20 && rect.height > 30){
-					//if(isAtTheRim(rect, 100)){
-						this.rects.add(rect);
-					//}
-				}
+			if(filters.eval(rect)){
+				this.rects.add(rect);
 			}
+			
+//			double ratio = widthHeightRatio(rect);
+//			if( ratio <= 0.70 && ratio >= 0.45 ){
+//				// filtering rectangles 
+//				if(rect.width > 20 && rect.height > 30){
+//					//if(isAtTheRim(rect, 100)){
+//						this.rects.add(rect);
+//					//}
+//				}
+//			}
 		}
 		return this;
 	}
@@ -344,27 +344,6 @@ public class CvPipeline {
 			return false;
 		}
 	}
-	
-	private final static double widthHeightRatio(Rect rect){
-		return (double)rect.width / (double)rect.height;
-	}
-
-	private boolean isAtTheRim(Rect rect, int width){
-	Size size = this.Image.size();
-	// order: x-left, x-right, y-top, y-bottom
-	int[] rim = {
-		width,
-		(int) (size.width - width),
-		width,
-		(int) (size.height - width)
-	};
-	if(rect.x > rim[0] && rect.x < rim[1] 
-		&& rect.y > rim[2] && rect.y < rim[3]){
-		return true;
-	}else{
-		return false;
-	}
-}
 	
 	private void preProcess(Mat img){
 		Imgproc.erode(img, img, Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(5,5)));
