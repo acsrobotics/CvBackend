@@ -7,6 +7,7 @@ import org.opencv.core.Rect;
 
 public class FilterPipeline {
 	
+	@FunctionalInterface
 	public interface Filter{
 		public boolean test(CvPipeline pipe, Rect rect);
 	}

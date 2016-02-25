@@ -9,6 +9,7 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
@@ -16,6 +17,7 @@ import org.opencv.core.Size;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
+import org.opencv.objdetect.CascadeClassifier;
 
 import backend_testing.FilterPipeline.Filter;
 
@@ -124,15 +126,6 @@ public class CvPipeline {
 				this.rects.add(rect);
 			}
 			
-//			double ratio = widthHeightRatio(rect);
-//			if( ratio <= 0.70 && ratio >= 0.45 ){
-//				// filtering rectangles 
-//				if(rect.width > 20 && rect.height > 30){
-//					//if(isAtTheRim(rect, 100)){
-//						this.rects.add(rect);
-//					//}
-//				}
-//			}
 		}
 		return this;
 	}
@@ -198,6 +191,19 @@ public class CvPipeline {
 		Mat out = new Mat();
 		Imgproc.resize(this.Image, out, new Size(width, height));
 		this.Image = out;
+		return this;
+	}
+	
+	public CvPipeline detectFaces(CascadeClassifier classifier){
+		Mat frame = new Mat();
+		Imgproc.equalizeHist(this.Image, frame);
+		MatOfRect rects = new MatOfRect();
+		classifier.detectMultiScale(frame, rects, 1.1, 2, 0, new Size(30,30), new Size(300, 300));
+		for(Rect r : rects.toArray()){
+			if(filters.eval(r)){
+				this.rects.add(r);
+			}
+		}
 		return this;
 	}
 	
