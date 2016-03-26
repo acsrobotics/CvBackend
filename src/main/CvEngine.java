@@ -1,4 +1,4 @@
-package backend_testing;
+package main;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -20,7 +20,7 @@ import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 import org.opencv.objdetect.CascadeClassifier;
 
-import backend_testing.FilterPipeline.Filter;
+import main.FilterPipeline.Filter;
 
 /**
  * For specific use of this library, please refer to this repository
@@ -45,6 +45,9 @@ public class CvEngine {
 	LinkedList<Rect>        rects;
 	LinkedList<RotatedRect> ellipses;
 	
+	LinkedList<Point>       startPoints;
+	LinkedList<Point>       endPoints;
+	
 	Mat Image;
 	
 	int iLowH;
@@ -61,6 +64,8 @@ public class CvEngine {
 		this.contours = new LinkedList<>();
 		this.rects    = new LinkedList<>();
 		this.ellipses = new LinkedList<>();
+		this.startPoints = new LinkedList<>();
+		this.endPoints   = new LinkedList<>();
 		this.filters  = new FilterPipeline();
 		this.filters.injectPipeDependency(this);
 	}
@@ -202,10 +207,54 @@ public class CvEngine {
 		return this;
 	}
 	
-	public CvEngine detectLines(){
+	public CvEngine detectLinesQuick(int threshold, int minLineSize, int lineGap){
 		
+		Mat lines = new Mat();
 		
+		Imgproc.HoughLinesP(this.Image, lines, 1, Math.PI / 180, threshold, minLineSize, lineGap);
 		
+		for(int i = 0; i<lines.cols(); i++){
+			double[] vec = lines.get(0, i);
+			double x1 = vec[0],
+					y1 = vec[1],
+					x2 = vec[2],
+					y2 = vec[3];
+			this.startPoints.add(new Point(x1, y1));
+			this.endPoints.add(new Point(x2, y2));
+		}
+		
+		return this;
+	}
+	
+	public CvEngine detectLines(int threshold, int minLineSize, int lineGap){
+		
+		MatOfPoint2f lines = new MatOfPoint2f();
+		
+		Imgproc.HoughLines(this.Image, lines, 1, Math.PI / 180, threshold, minLineSize, lineGap);
+		
+		for(int i = 0; i<lines.cols(); i++){
+			double[] vec = lines.get(0, i);
+			double rho  = vec[0],
+					theta = vec[1];
+			
+			double a = Math.cos(theta), b = Math.sin(theta);
+			
+			double x0 = a*rho, y0 = b*rho;
+			
+			this.startPoints.add(new Point(Math.round(x0 + 1000*(-b)), Math.round(y0 + 1000 * (a))));
+			this.endPoints.add(new Point(Math.round(x0 - 1000*(-b)), Math.round(y0 - 1000 * (a))));
+		}
+		
+		return this;
+	}
+	
+	public CvEngine drawLines(Mat canvas){
+		for(int i=0; i<this.startPoints.size(); i++){
+			Core.line(canvas, this.startPoints.get(i), this.endPoints.get(i), new Scalar(0, 255, 0), 3);
+		}
+		this.startPoints.clear();
+		this.endPoints.clear();
+		this.Image = canvas;
 		return this;
 	}
 	

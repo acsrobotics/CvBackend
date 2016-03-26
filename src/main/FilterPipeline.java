@@ -1,4 +1,4 @@
-package backend_testing;
+package main;
 
 import java.util.Collection;
 import java.util.LinkedList;
