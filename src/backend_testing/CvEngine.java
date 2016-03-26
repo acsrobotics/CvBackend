@@ -12,6 +12,7 @@ import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.highgui.Highgui;
@@ -32,14 +33,17 @@ import backend_testing.FilterPipeline.Filter;
  * @author Zhang
  *
  */
-public class CvPipeline {
+public class CvEngine {
+	
+	// TODO make a operation interface 
 	
 	static {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 	}
 	
-	LinkedList<MatOfPoint> contours;
-	LinkedList<Rect>       rects;
+	LinkedList<MatOfPoint>  contours;
+	LinkedList<Rect>        rects;
+	LinkedList<RotatedRect> ellipses;
 	
 	Mat Image;
 	
@@ -53,28 +57,29 @@ public class CvPipeline {
 	
 	FilterPipeline filters;
 	
-	public CvPipeline(){
+	public CvEngine(){
 		this.contours = new LinkedList<>();
 		this.rects    = new LinkedList<>();
+		this.ellipses = new LinkedList<>();
 		this.filters  = new FilterPipeline();
 		this.filters.injectPipeDependency(this);
 	}
 	
-	public CvPipeline setLowHSV(int H, int S, int V){
+	public CvEngine setLowHSV(int H, int S, int V){
 		this.iLowH = H;
 		this.iLowS = S;
 		this.iLowV = V;
 		return this;
 	}
 	
-	public CvPipeline setHighHSV(int H, int S, int V){
+	public CvEngine setHighHSV(int H, int S, int V){
 		this.iHighH = H;
 		this.iHighS = S;
 		this.iHighV = V;
 		return this;
 	}
 	
-	public CvPipeline combineWith(final Mat second, double alpha){
+	public CvEngine combineWith(final Mat second, double alpha){
 		
 		if(alpha > 1.0){
 			return null;
@@ -89,14 +94,40 @@ public class CvPipeline {
 		return this;
 	}
 	
-	public CvPipeline toBGR(){
+	
+	public CvEngine detectEdge(double lowThresh, double highThresh){
+		
+		Mat mask   = new Mat(this.Image.size(), this.Image.type());
+		Mat detect = new CvEngine().getBlackEmptyMat(this.Image).getImage();
+		
+		Imgproc.Canny(this.Image, mask, lowThresh, highThresh);
+		
+		this.Image.copyTo(detect, mask);
+		this.Image = detect;
+		
+		return this;
+	}
+	
+	public CvEngine gaussianBlur(Size ksize, double sigmaX, double sigmaY){
+		
+		Mat imgBlurred = new Mat(this.Image.size(), this.Image.type());
+		Imgproc.GaussianBlur(this.Image, imgBlurred, ksize, sigmaX, sigmaY);
+		this.Image = imgBlurred;
+		return this;
+	}
+	
+	public CvEngine gassianBlur(Size ksize){
+		return gaussianBlur(ksize, 0, 0);
+	}
+	
+	public CvEngine toBGR(){
 		Mat imgBGR = new Mat(this.Image.size(), this.Image.type());
 		Imgproc.cvtColor(this.Image, imgBGR, Imgproc.COLOR_HSV2BGR);
 		this.Image = imgBGR;
 		return this;
 	}
 	
-	public CvPipeline toGray(){
+	public CvEngine toGray(){
 		Mat imgGray = new Mat(this.Image.size(), this.Image.type());
 		Imgproc.cvtColor(this.Image, imgGray, Imgproc.COLOR_BGR2GRAY);
 		this.Image = imgGray;
@@ -104,12 +135,14 @@ public class CvPipeline {
 		
 	}
 	
-	public CvPipeline findContours(){
+	public CvEngine findContours(){
 		Imgproc.findContours(this.Image, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
 		return this;
 	}
 	
-	public CvPipeline computeRectsFromContours(){
+	
+	
+	public CvEngine computeRectsFromContours(){
 		MatOfPoint2f approxCurve = new MatOfPoint2f();
 		for(int i=0; i<contours.size(); i++){
 			// Convert contours(i) from MatOfPoint to MatOfPoint2f
@@ -130,7 +163,29 @@ public class CvPipeline {
 		return this;
 	}
 	
-	public CvPipeline drawCircleOnCenter(){
+
+	public CvEngine detectEllipse(){
+		for(int i=0; i<this.contours.size(); i++){
+			if(this.contours.get(i).toList().size() > 5){
+				MatOfPoint2f contour2f = new MatOfPoint2f(contours.get(i).toArray());
+				this.ellipses.add(Imgproc.fitEllipse(contour2f));
+			}
+		}
+		
+		return this;
+	}
+	
+	public CvEngine drawEllipses(Mat canvas){
+		
+		Scalar color = new Scalar(0, 255, 0);
+		for(RotatedRect r : this.ellipses){
+			Core.ellipse(canvas, r, color, 2, 8);
+		}
+		this.Image = canvas;
+		return this;
+	}
+	
+	public CvEngine drawCircleOnCenter(){
 		if(this.rects.size() != 0){
 			double x_center = this.Image.size().width / 2;
 			double y_center = this.Image.size().height / 2;
@@ -147,7 +202,14 @@ public class CvPipeline {
 		return this;
 	}
 	
-	public CvPipeline reduceRectsToOne(){
+	public CvEngine detectLines(){
+		
+		
+		
+		return this;
+	}
+	
+	public CvEngine reduceRectsToOne(){
 		int highestPosition = 0;
 		for(int i=0; i<this.rects.size(); i++){
 			highestPosition = this.rects.get(i).y > highestPosition ? this.rects.get(i).y : highestPosition;
@@ -173,7 +235,7 @@ public class CvPipeline {
 		return this.rects;
 	}
 	
-	public CvPipeline drawRects(Mat drawing){
+	public CvEngine drawRects(Mat drawing){
 		if(drawing == null){
 			drawing = Mat.zeros(this.Image.size(), CvType.CV_8UC3);
 		}
@@ -187,14 +249,14 @@ public class CvPipeline {
 		return this;
 	}
 	
-	public CvPipeline resizeTo(int width, int height){
+	public CvEngine resizeTo(int width, int height){
 		Mat out = new Mat();
 		Imgproc.resize(this.Image, out, new Size(width, height));
 		this.Image = out;
 		return this;
 	}
 	
-	public CvPipeline detectFaces(CascadeClassifier classifier){
+	public CvEngine detectWithClassifier(CascadeClassifier classifier){
 		Mat frame = new Mat();
 		Imgproc.equalizeHist(this.Image, frame);
 		MatOfRect rects = new MatOfRect();
@@ -207,7 +269,7 @@ public class CvPipeline {
 		return this;
 	}
 	
-	public CvPipeline momentTrack(final Mat imgOriginal, final Mat imgThresholded){
+	public CvEngine momentTrack(final Mat imgOriginal, final Mat imgThresholded){
 		Mat imgProcessed = imgOriginal.clone();
 		Size size = new Size(imgOriginal.width(), imgOriginal.height());
 		Moments oMoments = Imgproc.moments(imgThresholded);
@@ -235,7 +297,7 @@ public class CvPipeline {
 		return this;
 	}
 	
-	public CvPipeline addFilter(Filter filter){
+	public CvEngine addFilter(Filter filter){
 		this.filters.addFilter(filter);
 		return this;
 	}
@@ -292,7 +354,7 @@ public class CvPipeline {
 		return status;
 	}
 	
-	public CvPipeline convertToThreeChannel(){
+	public CvEngine convertToThreeChannel(){
 		if(this.Image.type() != CvType.CV_8UC3){
 			Mat out = new Mat(this.Image.size(), CvType.CV_8UC3);
 			List<Mat> in = new ArrayList<>(3);
@@ -305,14 +367,14 @@ public class CvPipeline {
 		return this;
 	}
 	
-	public CvPipeline toHSV(){
+	public CvEngine toHSV(){
 		Mat imgHSV = new Mat(this.Image.size(), this.Image.type());
 		Imgproc.cvtColor(this.Image, imgHSV, Imgproc.COLOR_BGR2HSV);
 		this.Image = imgHSV;
 		return this;
 	}
 	
-	public CvPipeline threshold(){
+	public CvEngine threshold(){
 		Mat imgProcessed = new Mat(this.Image.size(), this.Image.type());
 		this.Image.copyTo(imgProcessed);
 		Size size = imgProcessed.size();
@@ -333,7 +395,7 @@ public class CvPipeline {
 		return this;
 	}
 	
-	public CvPipeline invert(){
+	public CvEngine invert(){
 		Mat inverted = new Mat(this.Image.size(), this.Image.type());
 		Imgproc.threshold(this.Image, inverted, 1, 255, Imgproc.THRESH_BINARY_INV);
 		this.Image = inverted;
@@ -359,17 +421,17 @@ public class CvPipeline {
 	}
 	
 	
-	public CvPipeline writeToFileWithName(String fileName){
+	public CvEngine writeToFileWithName(String fileName){
 		Highgui.imwrite(fileName + ".jpg", this.Image);
 		return this;
 	}
 	
-	public CvPipeline getBlackEmptyMat(Mat sample){
+	public CvEngine getBlackEmptyMat(Mat sample){
 		this.Image = new Mat(sample.size(), sample.type(), new Scalar(0,0,0));
 		return this;
 	}
 	
-	public CvPipeline setImage(Mat img){
+	public CvEngine setImage(Mat img){
 		this.Image = img;
 		return this;
 	}

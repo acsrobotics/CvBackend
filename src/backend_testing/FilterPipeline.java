@@ -9,17 +9,17 @@ public class FilterPipeline {
 	
 	@FunctionalInterface
 	public interface Filter{
-		public boolean test(CvPipeline pipe, Rect rect);
+		public boolean test(CvEngine pipe, Rect rect);
 	}
 	
 	Collection<Filter> filterProceduers;
-	CvPipeline pipe;
+	CvEngine pipe;
 	
 	public FilterPipeline(){
 		this.filterProceduers = new LinkedList<>();
 	}
 	
-	public void injectPipeDependency(CvPipeline pipe){
+	public void injectPipeDependency(CvEngine pipe){
 		this.pipe = pipe;
 	}
 	
@@ -36,6 +36,10 @@ public class FilterPipeline {
 	
 	public void addFilter(Filter filter){
 		this.filterProceduers.add(filter);
+	}
+	
+	public void resetFilterPipeline(){
+		this.filterProceduers.clear();
 	}
 	
 }
