@@ -28,13 +28,13 @@ public class Demo {
 		processor
 			.setImage(imgInput)
 			.convertToThreeChannel()
-			.toGray()
+			.toGrayScale()
 			.gaussianBlur(new Size(5, 5), 0, 0)
 			.detectEdge(35, 90)
 //			.writeToFileWithName("edge")
 			.detectLinesQuick(100, 30, 50)
-			.drawLines(imgInput)
-			.writeToFileWithName("houghLines");
+			.drawLines(imgInput);
+//			.writeToFileWithName("houghLines");
 		
 		System.out.println(Duration.between(Instant.now(), start));
 		

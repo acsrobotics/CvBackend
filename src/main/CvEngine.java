@@ -15,6 +15,8 @@ import org.opencv.core.Rect;
 import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
+import org.opencv.features2d.*;
+import org.opencv.features2d.KeyPoint;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
@@ -48,6 +50,8 @@ public class CvEngine {
 	LinkedList<Point>       startPoints;
 	LinkedList<Point>       endPoints;
 	
+	LinkedList<KeyPoint>    features;
+	
 	Mat Image;
 	
 	int iLowH;
@@ -66,6 +70,7 @@ public class CvEngine {
 		this.ellipses = new LinkedList<>();
 		this.startPoints = new LinkedList<>();
 		this.endPoints   = new LinkedList<>();
+		this.features = new LinkedList<>();
 		this.filters  = new FilterPipeline();
 		this.filters.injectPipeDependency(this);
 	}
@@ -96,6 +101,13 @@ public class CvEngine {
 		
 		Core.addWeighted(this.Image, alpha, second, beta, 0.0, combined);
 		this.Image = combined;
+		return this;
+	}
+	
+	public CvEngine computeFeature(){
+		
+		c
+		
 		return this;
 	}
 	
@@ -132,7 +144,7 @@ public class CvEngine {
 		return this;
 	}
 	
-	public CvEngine toGray(){
+	public CvEngine toGrayScale(){
 		Mat imgGray = new Mat(this.Image.size(), this.Image.type());
 		Imgproc.cvtColor(this.Image, imgGray, Imgproc.COLOR_BGR2GRAY);
 		this.Image = imgGray;
